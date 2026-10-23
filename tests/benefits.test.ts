@@ -1,0 +1,16 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {DEFAULT_PROFILE as p,contributionCosts,accountEstimates} from '../lib/profile';
+import {unemployment,maternity,injury} from '../lib/benefits';
+import {cumulativeTax} from '../lib/policies';
+test('Shanghai unused contribution months produce correct award boundaries',()=>{for(const [months,award] of [[11,0],[12,2],[23,2],[24,4],[143,22],[144,24]])assert.equal(unemployment({...p,unemploymentContributionMonths:months}).months,award)});
+test('voluntary resignation or missing registration never passes screening',()=>{assert.equal(unemployment({...p,unemploymentContributionMonths:144,departureReason:'voluntary',employmentRegistered:true}).eligible,false);assert.equal(unemployment({...p,unemploymentContributionMonths:144}).eligible,false)});
+test('maternity insufficient contribution is split between fund and employer advance',()=>{const b=maternity({...p,birthInsuredMonths:4},0,true,true);assert.ok(Math.abs(b.total!-10000/30*158)<.01);assert.ok(Math.abs(b.fund!-b.total!/3)<.01);assert.ok(Math.abs(b.advance!+b.fund!-b.total!)<.01)});
+test('maternity nine consecutive months meets full funding threshold',()=>{const b=maternity({...p,birthInsuredMonths:9},9,true,true);assert.equal(b.advance,0)});
+test('flex maternity waiting period changes on 2027-05-01',()=>{const f={...p,birthMode:'flex' as const,birthInsuredMonths:12};assert.notEqual(maternity({...f,birthDate:'2027-04-30'},0,true,false).total,null);assert.equal(maternity({...f,birthDate:'2027-05-01'},0,true,false).total,null)});
+test('unknown eligibility and expired maternity period do not yield payable amounts',()=>{assert.equal(maternity(p,0,false,false).total,null);assert.equal(maternity({...p,birthDate:'2028-01-01'},12,true,true).total,null)});
+test('medical covered costs capped at bill; no unconditional additional 4500 cash',()=>{const b=maternity({...p,hospitalCost:8000,coveredHospitalCost:10000},12,true,true);assert.equal(b.covered,8000);assert.equal(b.outOfPocket,0)});
+test('2026 injury grade 1 uses statutory minimum not wage percentage alone',()=>{const i=injury({...p,injuryGrade:1,injuryWage:8000});assert.equal(i.monthly,9468);assert.equal(i.oneOff,216000)});
+test('unknown employer unemployment rate is visibly incomplete and excluded',()=>{const a=contributionCosts(p);assert.equal(a.employerComplete,false);assert.equal(contributionCosts({...p,employerUnemploymentRate:.5}).employer-a.employer,50)});
+test('explicit zero actual balance overrides estimates',()=>{assert.equal(accountEstimates({...p,medicalBalance:0}).medical,0)});
+test('cumulative tax at and above bracket boundary accounts for quick deduction',()=>{assert.equal(cumulativeTax(36000,0,0).tax,1080);assert.equal(cumulativeTax(36001,0,0).tax,1080.1);assert.equal(cumulativeTax(10000,10000,100).tax,0)});
