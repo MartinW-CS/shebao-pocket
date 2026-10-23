@@ -1,4 +1,5 @@
 export type Profile = {
+  annualSalary:number|null; annualExtraDeduction:number;
   birthContinuous:number; birthPaid:boolean; medicalActive:boolean; taxIncome:number; taxMonths:number; taxSocial:number; taxExtra:number; taxPaid:number;
   city: string; age: number; birthMonth: string; retirementCategory: 'male'|'female55'|'female50';
   workYear: number; workMonth: number; pensionYears: number|null; medicalYears: number|null; fundYears: number|null;
@@ -19,6 +20,7 @@ export type Profile = {
 };
 
 export const DEFAULT_PROFILE: Profile = {
+  annualSalary:null, annualExtraDeduction:0,
   birthContinuous:0,birthPaid:false,medicalActive:false,taxIncome:10000,taxMonths:1,taxSocial:1750,taxExtra:0,taxPaid:0,
   city:'上海', age:22, birthMonth:'2004-07', retirementCategory:'male', workYear:2026,workMonth:7,
   pensionYears:null,medicalYears:null,fundYears:null,
