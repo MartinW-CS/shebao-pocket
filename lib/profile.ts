@@ -1,5 +1,5 @@
 export type Profile = {
-  annualSalary:number|null; annualExtraDeduction:number; automaticDeductions:boolean; socialBase:number|null; fundBase:number|null; supplementRate:number;
+  incomePeriod:'monthly'|'annual'; annualSalary:number|null; annualExtraDeduction:number; automaticDeductions:boolean; socialBase:number|null; fundBase:number|null; supplementRate:number;
   birthContinuous:number; birthPaid:boolean; medicalActive:boolean; taxIncome:number; taxMonths:number; taxSocial:number; taxExtra:number; taxPaid:number;
   city: string; age: number; birthMonth: string; retirementCategory: 'male'|'female55'|'female50';
   workYear: number; workMonth: number; pensionYears: number|null; medicalYears: number|null; fundYears: number|null;
@@ -20,7 +20,7 @@ export type Profile = {
 };
 
 export const DEFAULT_PROFILE: Profile = {
-  annualSalary:null, annualExtraDeduction:0, automaticDeductions:true, socialBase:null, fundBase:null, supplementRate:0,
+  incomePeriod:'monthly', annualSalary:null, annualExtraDeduction:0, automaticDeductions:true, socialBase:null, fundBase:null, supplementRate:0,
   birthContinuous:0,birthPaid:false,medicalActive:false,taxIncome:10000,taxMonths:1,taxSocial:1750,taxExtra:0,taxPaid:0,
   city:'上海', age:22, birthMonth:'2004-07', retirementCategory:'male', workYear:2026,workMonth:7,
   pensionYears:null,medicalYears:null,fundYears:null,
@@ -55,6 +55,8 @@ export function normalizeProfile(raw:unknown):Profile {
     else if(typeof fallback==='number'||fallback===null) {if(typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=1e10)(result as any)[key]=v;}
     else if(typeof v===typeof fallback) (result as any)[key]=v;
   }
+  if(!['monthly','annual'].includes(result.incomePeriod))result.incomePeriod='monthly';
+  if(!('incomePeriod' in raw)&&typeof (raw as Record<string,unknown>).annualSalary==='number')result.incomePeriod='annual';
   result.city=result.city.trim().slice(0,20)||'上海';
   if(!['male','female55','female50'].includes(result.retirementCategory))result.retirementCategory='male';
   result.age=Math.min(100,Math.max(16,result.age));

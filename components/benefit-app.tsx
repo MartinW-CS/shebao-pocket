@@ -3,7 +3,7 @@ import {useEffect,useState,type ReactNode} from 'react';
 import {LayoutDashboard,Wallet,HeartPulse,House,Baby,BriefcaseBusiness,ShieldCheck,TriangleAlert,ArrowLeftRight,UserRound,Globe,ChevronRight,ArrowUpRight,CalendarDays,Check,LockKeyhole,Menu,X,Download,RefreshCw,Info,Sparkles,Search,ArrowRight} from 'lucide-react';
 import {DEFAULT_PROFILE,normalizeProfile,contributionYears,accountEstimates,contributionCosts,type Profile} from '@/lib/profile';
 import {resolveContributions,contributionKeys,contributionSources} from '@/lib/contributions';
-import {salarySummary} from '@/lib/salary';
+import {salarySummary,annualFromInput,displayedIncome,incomeFeedback} from '@/lib/salary';
 import {retirement,retirementSources} from '@/lib/retirement';
 import {housing,housingSources} from '@/lib/housing';
 import {unemployment,injury,maternity,benefitSources,injuryMultipliers,injuryGrantMultipliers} from '@/lib/benefits';
@@ -49,6 +49,9 @@ export default function BenefitApp({section}:{section:string}){
  const current=NAV.find(n=>n.id===section)??NAV[0]; const Icon=current.icon;
  const monthCost=c.employee+c.personalFund;
  const salary=salarySummary(deductionReady?p:{...p,annualSalary:null});
+ const incomeState=incomeFeedback(p,deductions.status);
+ const unavailableIncome=incomeState.kind==='error'||!deductionReady||salary.status!=='ready';
+ const incomeAmount=displayedIncome(p.annualSalary,p.incomePeriod);
  const flexBase=Math.min(37731,Math.max(7546,p.flexBase));const flexPension=p.flexPension?flexBase*.2:0,flexMedical=p.flexMedical?flexBase*.1:0;
  const tax=cumulativeTax(taxIncome,5000*Math.min(12,taxMonths)+taxSocial+taxExtra,taxPaid);
  function exportData(){const blob=new Blob([JSON.stringify({version:1,profile:input,example},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const el=document.createElement('a');el.href=url;el.download='我的社保档案.json';el.click();URL.revokeObjectURL(url);}
@@ -63,9 +66,15 @@ export default function BenefitApp({section}:{section:string}){
   {input.automaticDeductions&&!deductionReady&&!['overview','profile','policies','flex','gap','maternity','unemployment','injury'].includes(section)?<Card title="先补充缴费计算依据"><p>请在首页填写收入或实际缴费基数，才能估算账户与缴费相关待遇。</p><a href="/#income-form" className="button primary">填写收入与基数</a></Card>:localOnly?<Card title="先核对这座城市的政策"><p className="muted">各地缴费比例、领取条件和待遇标准不同。可以保留个人档案，先查询官方政策。</p><a href="/policies" className="button primary">查询{p.city}政策 <ArrowUpRight size={16}/></a></Card>:<>
   {section==='overview'&&<>
    <section id="income-form" className="card income-card" aria-labelledby="income-title">
-    <div className="income-heading"><div><span className="income-kicker">从你的工资开始</span><h2 id="income-title">填入收入，算清每一笔扣款</h2><p>直接在这里填写，修改后立即计算，并自动保存在当前浏览器。</p></div><span className="badge purple"><LockKeyhole size={13}/> 本地保存</span></div>
+    <div className="income-heading"><div><span className="income-kicker">从你的工资开始</span><h2 id="income-title">填入收入，算清每一笔扣款</h2><p>月薪、年薪任选一种输入，自动换算；其他信息可按需补充。</p></div><span className="badge purple"><LockKeyhole size={13}/> 本地保存</span></div>
     <div className="form-grid four income-fields">
-     {field('annualSalary','税前年薪','元/年','填写全年工资总额，奖金按合并计税情景')}
+     <div className="field income-entry">
+      <div className="salary-switch" role="group" aria-label="工资输入单位"><button type="button" aria-pressed={p.incomePeriod==='monthly'} onClick={()=>update('incomePeriod','monthly')}>月薪</button><button type="button" aria-pressed={p.incomePeriod==='annual'} onClick={()=>update('incomePeriod','annual')}>年薪</button></div>
+      <label htmlFor="salary-input">{p.incomePeriod==='monthly'?'税前月薪':'税前年薪'}</label>
+      <div className="input-wrap"><input id="salary-input" aria-label={p.incomePeriod==='monthly'?'税前月薪':'税前年薪'} aria-invalid={incomeState.kind==='error'} aria-describedby="salary-conversion salary-message" type="number" min="0.01" step="0.01" value={incomeAmount??''} placeholder={p.incomePeriod==='monthly'?'例如 16000':'例如 192000'} onChange={e=>update('annualSalary',annualFromInput(e.target.value===''?null:Number(e.target.value),p.incomePeriod))}/><span>{p.incomePeriod==='monthly'?'元/月':'元/年'}</span></div>
+      {incomeState.kind==='error'&&<small className="salary-inline-error">{incomeState.label} · <a href="#salary-message">查看原因与修改方法</a></small>}
+      <small id="salary-conversion">{p.annualSalary===null?'只填一项即可；月薪按12个月自动换算':p.incomePeriod==='monthly'?`折合年薪 ¥ ${money(p.annualSalary,2)}（12个月）`:`折合月均 ¥ ${money(p.annualSalary/12,2)}（年薪÷12）`}</small>
+     </div>
      {field('city','所在城市','','例如上海；其他城市待遇先查询政策','text')}
      {field('age','年龄','岁')}
      {field('workYear','参加工作年份','年')}
@@ -86,14 +95,14 @@ export default function BenefitApp({section}:{section:string}){
     </>:<div className="manual-correction"><p className="muted">工资条校正模式：使用下面的实际扣款，修改年薪不会覆盖它们。切回自动计算后，手动金额仍保留。</p><div className="form-grid four">{field('pensionMonthly','个人养老','元/月')}{field('medicalMonthly','个人医疗','元/月')}{field('unemploymentMonthly','个人失业','元/月')}{field('fundMonthly','个人普通公积金','元/月')}{field('supplementMonthly','个人补充公积金','元/月')}{field('injuryMonthly','个人工伤','元/月','普通单位职工个人不缴')}{field('maternityMonthly','个人生育','元/月','普通单位职工个人不缴')}</div></div>}
     <details className="income-more"><summary>专项附加扣除与入职月份</summary><div className="form-grid four">{field('annualExtraDeduction','全年专项附加扣除','元/年','只填符合条件、实际可享受的扣除额')}{field('workMonth','开始工作月份','月')}</div></details>
     <Sources items={contributionSources}/>
-    <div className="income-feedback" aria-live="polite">{deductions.status==='unsupported'?'此城市的自动缴费规则尚未核验，请先查询政策，或切换工资条校正。':!deductionReady?'填写年薪，或分别填写两项申报基数，即可自动计算扣款。':salary.status==='empty'?'扣款已计算；补充税前年薪可估算全年到手收入。':salary.status==='invalid'?'全年缴费情景超过年薪，请核对收入、申报基数及参保月份。':input.automaticDeductions?'已按政策基数及比例计算。调整收入、基数或比例，结果会同步更新。':'已按工资条校正金额计算。'}</div>
+    <div id="salary-message" className={`income-feedback ${incomeState.kind}`} role={incomeState.kind==='error'?'alert':'status'} aria-live="polite">{incomeState.message}{incomeState.kind==='error'&&<a href="#salary-input">返回修改收入 ↑</a>}</div>
     <div className="income-results">
-     <div><span>预计全年到手</span><strong>{salary.net===null?'等待填写':`¥ ${money(salary.net,2)}`}</strong></div>
-     <div><span>平均每月到手</span><strong>{salary.monthlyNet===null?'等待填写':`¥ ${money(salary.monthlyNet,2)}`}</strong></div>
-     <div><span>全年个人五险一金</span><strong>{deductionReady?`¥ ${money(salary.contributions,2)}`:'等待填写'}</strong></div>
-     <div><span>全年工资个税情景</span><strong>{salary.tax===null?'等待填写':`¥ ${money(salary.tax,2)}`}</strong></div>
+     <div><span>预计全年到手</span><strong>{unavailableIncome?incomeState.label:`¥ ${money(salary.net,2)}`}</strong></div>
+     <div><span>平均每月到手</span><strong>{unavailableIncome?incomeState.label:`¥ ${money(salary.monthlyNet,2)}`}</strong></div>
+     <div><span>全年个人五险一金</span><strong>{deductionReady?`¥ ${money(salary.contributions,2)}`:incomeState.label}</strong></div>
+     <div><span>全年工资个税情景</span><strong>{unavailableIncome?incomeState.label:`¥ ${money(salary.tax,2)}`}</strong></div>
     </div>
-    <p className="income-assumption">按全年居民工资收入、12个月相同缴费与60,000元基本减除费用估算；假定填报社保、公积金均符合税前扣除规定。年中入职、调基、其他收入和奖金单独计税需另算；平均每月到手不等于每个月实际工资。</p>
+    <p className="income-assumption">月薪×12或直接填写的年薪均按全年收入测算；额外奖金请计入年薪（合并计税情景）。按全年居民工资收入、12个月相同缴费与60,000元基本减除费用估算；假定填报社保、公积金均符合税前扣除规定。年中入职、调基、其他收入和奖金单独计税需另算；平均每月到手不等于每个月实际工资。</p>
     <div className="income-links"><a href="/profile" className="text-link">填写实际账户余额及缴费年限 <ArrowRight size={15}/></a><a href="/policies" className="text-link">查看个税与扣除政策 <ArrowUpRight size={15}/></a></div>
    </section>
    {deductionReady&&<><section className="hero"><div className="hero-main"><div className="hero-label"><span className="live-dot"/> 每月个人五险一金缴费</div><div className="hero-amount"><span>¥</span>{money(monthCost)}<small>/ 月</small></div><p>每一笔缴费，都在为未来积累保障。</p><a href="/profile" className="hero-link">查看与修改缴费明细 <ArrowUpRight size={16}/></a></div><div className="hero-side"><div><span>个人年度缴费情景</span><strong>¥ {money(monthCost*12)}</strong><small>按当前月缴额 × 12，未含个税</small></div><div><span>单位月缴费估算{!c.employerComplete?' · 已知部分':''}</span><strong>{local?`¥ ${money(c.employer+c.personalFund)}`:'待核实'}</strong><small>含等额公积金；不从个人工资扣除</small></div></div><div className="hero-orbit orbit-one"/><div className="hero-orbit orbit-two"/></section>
