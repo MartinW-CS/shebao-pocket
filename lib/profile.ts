@@ -1,5 +1,5 @@
 export type Profile = {
-  annualSalary:number|null; annualExtraDeduction:number;
+  annualSalary:number|null; annualExtraDeduction:number; automaticDeductions:boolean; socialBase:number|null; fundBase:number|null; supplementRate:number;
   birthContinuous:number; birthPaid:boolean; medicalActive:boolean; taxIncome:number; taxMonths:number; taxSocial:number; taxExtra:number; taxPaid:number;
   city: string; age: number; birthMonth: string; retirementCategory: 'male'|'female55'|'female50';
   workYear: number; workMonth: number; pensionYears: number|null; medicalYears: number|null; fundYears: number|null;
@@ -20,7 +20,7 @@ export type Profile = {
 };
 
 export const DEFAULT_PROFILE: Profile = {
-  annualSalary:null, annualExtraDeduction:0,
+  annualSalary:null, annualExtraDeduction:0, automaticDeductions:true, socialBase:null, fundBase:null, supplementRate:0,
   birthContinuous:0,birthPaid:false,medicalActive:false,taxIncome:10000,taxMonths:1,taxSocial:1750,taxExtra:0,taxPaid:0,
   city:'上海', age:22, birthMonth:'2004-07', retirementCategory:'male', workYear:2026,workMonth:7,
   pensionYears:null,medicalYears:null,fundYears:null,
@@ -60,7 +60,8 @@ export function normalizeProfile(raw:unknown):Profile {
   result.age=Math.min(100,Math.max(16,result.age));
   result.workMonth=Math.min(12,Math.max(1,Math.round(result.workMonth)));
   result.workYear=Math.min(2100,Math.max(1950,Math.round(result.workYear)));
-  result.fundRate=Math.min(12,Math.max(1,result.fundRate));
+  result.fundRate=[5,6,7].includes(result.fundRate)?result.fundRate:7;
+  result.supplementRate=Math.min(5,Math.max(0,Math.round(result.supplementRate)));
   for(const k of ['pensionYears','medicalYears','fundYears'] as const) if(result[k]!==null)result[k]=Math.min(80,result[k]!);
   result.projectionYears=Math.min(80,result.projectionYears);
   result.babyCount=Math.min(10,Math.max(1,Math.floor(result.babyCount)));
