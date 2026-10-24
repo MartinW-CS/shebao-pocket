@@ -9,7 +9,7 @@ export type Profile = {
   medicalSpending: number; fundWithdrawn: number; salaryIndex: number; accountGrowth: number; divisorOverride: number|null;
   projectionYears: number; flexBase: number; flexPension: boolean; flexMedical: boolean;
   housingRent: number; housingPrice: number; housingDownPayment: number; housingLoanYears: number;
-  household: 'single'|'family'; firstHome: boolean; continuousFundMonths: number; incomeBase: number;
+  linkFundParameters:boolean; household: 'single'|'family'; firstHome: boolean; continuousFundMonths: number; incomeBase: number;
   spouseFundBalance: number; spouseSupplementBalance: number; spouseContinuousFundMonths:number; spouseIncomeBase:number; spouseSupplementMonthly:number;
   rentEligible:boolean; loanConditionsConfirmed:boolean; newCitizen: boolean; rentRegistered: boolean;
   benefitWage: number; unemploymentContributionMonths: number|null; usedUnemploymentMonths: number;
@@ -28,7 +28,7 @@ export const DEFAULT_PROFILE: Profile = {
   fundMonthly:700,fundRate:7,supplementMonthly:0,employerUnemploymentRate:null,employerInjuryRate:0.2,
   pensionBalance:null,medicalBalance:null,fundBalance:null,supplementBalance:0,medicalSpending:0,fundWithdrawn:0,
   salaryIndex:1,accountGrowth:0,divisorOverride:null,projectionYears:5,flexBase:7546,flexPension:true,flexMedical:true,
-  housingRent:3500,housingPrice:3000000,housingDownPayment:900000,housingLoanYears:30,household:'single',firstHome:true,
+  housingRent:3500,housingPrice:3000000,housingDownPayment:900000,housingLoanYears:30,linkFundParameters:true,household:'single',firstHome:true,
   continuousFundMonths:3,incomeBase:10000,spouseFundBalance:0,spouseSupplementBalance:0,spouseContinuousFundMonths:0,spouseIncomeBase:0,spouseSupplementMonthly:0,rentEligible:false,loanConditionsConfirmed:false,newCitizen:true,rentRegistered:false,
   benefitWage:10000,unemploymentContributionMonths:null,usedUnemploymentMonths:0,departureReason:'involuntary',employmentRegistered:false,
   difficultBirth:false,babyCount:1,birthDate:'2026-10-22',birthMode:'employee',birthInsuredMonths:4,hospitalCost:12000,coveredHospitalCost:10000,
@@ -57,6 +57,7 @@ export function normalizeProfile(raw:unknown):Profile {
   }
   if(!['monthly','annual'].includes(result.incomePeriod))result.incomePeriod='monthly';
   if(!('incomePeriod' in raw)&&typeof (raw as Record<string,unknown>).annualSalary==='number')result.incomePeriod='annual';
+  if(!('linkFundParameters' in raw)&&((raw as any).incomeBase!==undefined&&(raw as any).incomeBase!==10000||(raw as any).continuousFundMonths!==undefined&&(raw as any).continuousFundMonths!==3))result.linkFundParameters=false;
   result.city=result.city.trim().slice(0,20)||'上海';
   if(!['male','female55','female50'].includes(result.retirementCategory))result.retirementCategory='male';
   result.age=Math.min(100,Math.max(16,result.age));

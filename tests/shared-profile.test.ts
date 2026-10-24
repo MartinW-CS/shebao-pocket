@@ -21,3 +21,11 @@ test('syncing income preserves explicit actual balances and year overrides',()=>
  assert.deepEqual(contributionYears(next,now),{pension:1,medical:2,fund:1.5});
  assert.deepEqual(accountEstimates(next,now),{pension:12345,medical:2345,fund:3456});
 });
+test('fund loan scenario follows overview unless actual values are selected',()=>{
+ const raw={...DEFAULT_PROFILE,annualSalary:240000,workYear:2024,workMonth:7};
+ const linked=resolveContributions(raw,now).profile;
+ assert.equal(linked.incomeBase,20000);assert.equal(linked.continuousFundMonths,27);
+ const manual=resolveContributions({...raw,linkFundParameters:false,incomeBase:18000,continuousFundMonths:8},now).profile;
+ assert.equal(manual.incomeBase,18000);assert.equal(manual.continuousFundMonths,8);
+ assert.equal(normalizeProfile({incomeBase:18000,continuousFundMonths:8}).linkFundParameters,false);
+});

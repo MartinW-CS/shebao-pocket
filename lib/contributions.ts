@@ -1,10 +1,10 @@
-import {type Profile} from './profile';
+import {automaticMonths,type Profile} from './profile';
 import {policyRows,type Source} from './policies';
 export const contributionKeys=['pensionMonthly','medicalMonthly','unemploymentMonthly','injuryMonthly','maternityMonthly','fundMonthly','supplementMonthly'] as const;
 const cents=(v:number)=>Math.round((v+Number.EPSILON)*100)/100;
 const clamp=(v:number,min:number,max:number)=>Math.min(max,Math.max(min,v));
 /** Resolve a monthly employee scenario without overwriting the user's saved payroll corrections. */
-export function resolveContributions(raw:Profile){
+export function resolveContributions(raw:Profile,now=new Date()){
  const local=raw.city.trim().replace(/市$/,'')==='上海';
  const average=raw.annualSalary!==null&&raw.annualSalary>0?raw.annualSalary/12:null;
  const socialInput=raw.socialBase??average, fundInput=raw.fundBase??average;
@@ -19,6 +19,10 @@ export function resolveContributions(raw:Profile){
   profile.injuryMonthly=0;profile.maternityMonthly=0;
   profile.fundMonthly=fundBase===null?0:Math.round(fundBase*raw.fundRate/100);
   profile.supplementMonthly=fundBase===null?0:Math.round(fundBase*raw.supplementRate/100);
+ }
+ if(raw.linkFundParameters){
+  profile.incomeBase=raw.automaticDeductions?(fundBase??0):cents(raw.fundMonthly/(raw.fundRate/100));
+  profile.continuousFundMonths=Math.max(0,automaticMonths(raw,now)-1);
  }
  return {profile,status,socialBase,fundBase,socialInput,fundInput,estimated:raw.socialBase===null||raw.fundBase===null};
 }
