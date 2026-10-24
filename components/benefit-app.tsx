@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useState,type ReactNode} from 'react';
+import {useEffect,useState,useRef,type ReactNode} from 'react';
 import {LayoutDashboard,Wallet,HeartPulse,House,Baby,BriefcaseBusiness,ShieldCheck,TriangleAlert,ArrowLeftRight,UserRound,Globe,ChevronRight,ArrowUpRight,CalendarDays,Check,LockKeyhole,Menu,X,Download,RefreshCw,Info,Sparkles,Search,ArrowRight} from 'lucide-react';
 import {DEFAULT_PROFILE,normalizeProfile,contributionYears,accountEstimates,contributionCosts,type Profile} from '@/lib/profile';
 import {resolveContributions,contributionKeys,contributionSources} from '@/lib/contributions';
@@ -34,6 +34,7 @@ function Sources({items}:{items:Source[]}){return <details className="sources"><
 function Bar({value,max,color='purple'}:{value:number;max:number;color?:string}){return <div className={`progress ${color}`}><span style={{width:`${Math.min(100,max>0?value/max*100:0)}%`}}/></div>}
 export default function BenefitApp({section}:{section:string}){
  const [input,setP]=useState<Profile>(DEFAULT_PROFILE),[ready,setReady]=useState(false),[example,setExample]=useState(true),[save,setSave]=useState('正在读取本地资料'),[menu,setMenu]=useState(false);
+ const receivedProfile=useRef<Profile|null>(null);
  const deductions=resolveContributions(input),p=deductions.profile;
  const deductionReady=deductions.status==='ready'||deductions.status==='manual';
  const {birthContinuous:continuousBirth,birthPaid,medicalActive,taxIncome,taxMonths,taxSocial,taxExtra,taxPaid}=p;
@@ -42,10 +43,10 @@ export default function BenefitApp({section}:{section:string}){
  useEffect(()=>{try{const raw=localStorage.getItem(KEY);if(raw){const data=JSON.parse(raw);setP(normalizeProfile(data.profile));setExample(data.example!==false);}setSave('仅存于此浏览器');}catch{setSave('本地资料无法读取，请重新填写');}setReady(true)},[]);
  // All routes and open tabs share one saved profile; external changes trigger recalculation.
  useEffect(()=>{
-  const sync=(event:StorageEvent)=>{if(event.key!==KEY||!event.newValue)return;try{const data=JSON.parse(event.newValue);setP(normalizeProfile(data.profile));setExample(data.example!==false);setSave('已同步总览与其他页面');}catch{setSave('同步资料读取失败，请检查本地档案');}};
+  const sync=(event:StorageEvent)=>{if(event.key!==KEY||!event.newValue)return;try{const data=JSON.parse(event.newValue);const incoming=normalizeProfile(data.profile);receivedProfile.current=incoming;setP(incoming);setExample(data.example!==false);setSave('已同步总览与其他页面');}catch{setSave('同步资料读取失败，请检查本地档案');}};
   window.addEventListener('storage',sync);return ()=>window.removeEventListener('storage',sync);
  },[]);
- useEffect(()=>{if(!ready)return;try{localStorage.setItem(KEY,JSON.stringify({version:1,profile:input,example}));setSave('已自动保存到本地');}catch{setSave('保存失败，请导出备份');}},[input,ready,example]);
+ useEffect(()=>{if(!ready)return;if(receivedProfile.current===input){receivedProfile.current=null;return;}try{localStorage.setItem(KEY,JSON.stringify({version:1,profile:input,example}));setSave('已自动保存到本地');}catch{setSave('保存失败，请导出备份');}},[input,ready,example]);
  const update=(key:keyof Profile,value:Profile[keyof Profile])=>{setExample(false);setP(prev=>({...prev,[key]:value}));};
  const field=(key:keyof Profile,label:string,unit='',hint='',type='number')=><label className="field" key={key}><span>{label}</span><div className="input-wrap"><input aria-label={label} readOnly={(input.automaticDeductions&&contributionKeys.includes(key as typeof contributionKeys[number]))||(input.linkFundParameters&&(key==='incomeBase'||key==='continuousFundMonths'))} type={type} min={type==='number'?0:undefined} step="any" onBlur={()=>setP(prev=>normalizeProfile(prev))} value={p[key]===null?'':String(p[key])} placeholder={p[key]===null?(key==='annualSalary'?'例如 120000':'留空自动估算'):undefined} onChange={e=>{const value=type==='number'?(e.target.value===''&&DEFAULT_PROFILE[key]===null?null:Math.max(0,Number(e.target.value))):e.target.value;update(key,value);if(key==='age')setP(prev=>({...prev,birthMonth:''}));}}/>{unit&&<span>{unit}</span>}</div>{(hint||(input.automaticDeductions&&contributionKeys.includes(key as typeof contributionKeys[number])))&&<small>{input.automaticDeductions&&contributionKeys.includes(key as typeof contributionKeys[number])?'按政策自动计算；在首页可调整基数或切换工资条校正':hint}</small>}</label>;
  const select=(key:keyof Profile,label:string,options:[string,string][])=> <label className="field"><span>{label}</span><select aria-label={label} value={String(p[key])} onChange={e=>update(key,typeof DEFAULT_PROFILE[key]==='number'?Number(e.target.value):e.target.value)}>{options.map(([v,n])=><option key={v} value={v}>{n}</option>)}</select></label>;
