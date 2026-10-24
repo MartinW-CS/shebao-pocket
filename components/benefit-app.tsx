@@ -3,7 +3,9 @@ import {useEffect,useState,type ReactNode} from 'react';
 import {LayoutDashboard,Wallet,HeartPulse,House,Baby,BriefcaseBusiness,ShieldCheck,TriangleAlert,ArrowLeftRight,UserRound,Globe,ChevronRight,ArrowUpRight,CalendarDays,Check,LockKeyhole,Menu,X,Download,RefreshCw,Info,Sparkles,Search,ArrowRight} from 'lucide-react';
 import {DEFAULT_PROFILE,normalizeProfile,contributionYears,accountEstimates,contributionCosts,type Profile} from '@/lib/profile';
 import {resolveContributions,contributionKeys,contributionSources} from '@/lib/contributions';
-import {salarySummary,annualFromInput,displayedIncome,incomeFeedback} from '@/lib/salary';
+import {annualFromInput,displayedIncome} from '@/lib/salary';
+import {payroll,payrollSources} from '@/lib/payroll';
+import {PayrollControls,PayrollTable} from './payroll-panel';
 import {retirement,retirementSources} from '@/lib/retirement';
 import {housing,housingSources} from '@/lib/housing';
 import {unemployment,injury,maternity,benefitSources,injuryMultipliers,injuryGrantMultipliers} from '@/lib/benefits';
@@ -68,8 +70,8 @@ export default function BenefitApp({section}:{section:string}){
  };
  const detailNote:Record<string,string>={pension:'月缴费、年龄和累计年限来自共享档案；历史平均缴费指数与账户增长率是本页独立假设。',medical:'月缴费与累计年限自动联动；如填报了实际余额，则优先采用实际余额。',fund:'公积金月缴额与累计年限自动联动；贷款工资基数、连续月数默认跟随总览估算，可切换实际值校正。',maternity:'个人参保资料共享；单位上年月平均缴费工资、事件月缴费与连续参保情况需单独核对。',unemployment:'个人缴费自动同步；未用于申领的失业缴费月数、离职原因和登记情况需按实际核对。',injury:'在职参保资料共享；工伤待遇工资为受伤前12个月核定口径，不直接等于当前月薪。',gap:'年限与个人资料来自共享档案；本页只需补充预计断缴时间与办事条件。',compare:'在职缴费来自总览；灵活就业基数属于离职后的独立方案，不覆盖在职基数。',flex:'已有养老与医保年限自动同步；灵活就业缴费基数和参保组合可单独选择。'};
  const monthCost=c.employee+c.personalFund;
- const salary=salarySummary(deductionReady?p:{...p,annualSalary:null});
- const incomeState=incomeFeedback(p,deductions.status);
+ const salary=payroll(input);
+ const incomeState=salary;
  const unavailableIncome=incomeState.kind==='error'||!deductionReady||salary.status!=='ready';
  const incomeAmount=displayedIncome(p.annualSalary,p.incomePeriod);
  const flexBase=Math.min(37731,Math.max(7546,p.flexBase));const flexPension=p.flexPension?flexBase*.2:0,flexMedical=p.flexMedical?flexBase*.1:0;
@@ -98,7 +100,7 @@ export default function BenefitApp({section}:{section:string}){
       <label htmlFor="salary-input">{p.incomePeriod==='monthly'?'税前月薪':'税前年薪'}</label>
       <div className="input-wrap"><input id="salary-input" aria-label={p.incomePeriod==='monthly'?'税前月薪':'税前年薪'} aria-invalid={incomeState.kind==='error'} aria-describedby="salary-conversion salary-message" type="number" min="0.01" step="0.01" value={incomeAmount??''} placeholder={p.incomePeriod==='monthly'?'例如 16000':'例如 192000'} onChange={e=>update('annualSalary',annualFromInput(e.target.value===''?null:Number(e.target.value),p.incomePeriod))}/><span>{p.incomePeriod==='monthly'?'元/月':'元/年'}</span></div>
       {incomeState.kind==='error'&&<small className="salary-inline-error">{incomeState.label} · <a href="#salary-message">查看原因与修改方法</a></small>}
-      <small id="salary-conversion">{p.annualSalary===null?'只填一项即可；月薪按12个月自动换算':p.incomePeriod==='monthly'?`折合年薪 ¥ ${money(p.annualSalary,2)}（12个月）`:`折合月均 ¥ ${money(p.annualSalary/12,2)}（年薪÷12）`}</small>
+      <small id="salary-conversion">{p.annualSalary===null?'只填一项即可；月薪按12个月自动换算':p.incomePeriod==='monthly'?`标准年薪 ¥ ${money(p.annualSalary,2)}（12个月；本年实发按入职月份）`:`折合月均 ¥ ${money(p.annualSalary/12,2)}（年薪÷12）`}</small>
      </div>
      {field('city','所在城市','','例如上海；其他城市待遇先查询政策','text')}
      {field('age','年龄','岁')}
@@ -116,25 +118,27 @@ export default function BenefitApp({section}:{section:string}){
      <p className="muted">公积金比例由单位确定，请按实际选择。基数通常按上年度月平均工资核定；新入职社保按首月全月工资。年薪÷12只是便于试算的假设，不代表单位已申报基数。</p>
      {local&&<div className="base-summary"><span>本次社保计算基数 <b>{deductions.socialBase===null?'等待收入':`¥ ${money(deductions.socialBase,2)}`}</b></span><span>本次公积金计算基数 <b>{deductions.fundBase===null?'等待收入':`¥ ${money(deductions.fundBase,2)}`}</b></span></div>}
      <div className="deduction-grid" aria-label="政策计算的个人月扣款">{[['养老保险',p.pensionMonthly,'8%'],['医疗保险',p.medicalMonthly,'2%'],['失业保险',p.unemploymentMonthly,'0.5%'],['工伤保险',0,'个人不缴'],['生育保险',0,'个人不缴'],['普通公积金',p.fundMonthly,`${p.fundRate}%`],['补充公积金',p.supplementMonthly,`${p.supplementRate}%`]].map(([name,value,rate])=><div className="deduction-item" key={name}><span>{name}<small>{rate}</small></span><strong>{deductionReady?`¥ ${money(Number(value),2)}`:'待计算'}</strong></div>)}</div>
-     <p className="income-assumption">社保按基数×比例估算到分；公积金个人部分四舍五入到元。金额按当前正常参保月测算，入职首月公积金、补缴和单位特殊获批方案需另行核对。</p>
+     <p className="income-assumption">社保按基数×比例估算到分；公积金个人部分四舍五入到元。金额按当前正常参保月测算，下方逐月明细会处理首次工作次月起缴和年中调基；补缴及特殊获批方案需另核对。</p>
     </>:<div className="manual-correction"><p className="muted">工资条校正模式：使用下面的实际扣款，修改年薪不会覆盖它们。切回自动计算后，手动金额仍保留。</p><div className="form-grid four">{field('pensionMonthly','个人养老','元/月')}{field('medicalMonthly','个人医疗','元/月')}{field('unemploymentMonthly','个人失业','元/月')}{field('fundMonthly','个人普通公积金','元/月')}{field('supplementMonthly','个人补充公积金','元/月')}{field('injuryMonthly','个人工伤','元/月','普通单位职工个人不缴')}{field('maternityMonthly','个人生育','元/月','普通单位职工个人不缴')}</div></div>}
-    <details className="income-more"><summary>专项附加扣除与入职月份</summary><div className="form-grid four">{field('annualExtraDeduction','全年专项附加扣除','元/年','只填符合条件、实际可享受的扣除额')}{field('workMonth','开始工作月份','月')}</div></details>
+    <PayrollControls p={p} field={field} select={select} toggle={toggle}/>
     <Sources items={contributionSources}/>
-    <div id="salary-message" className={`income-feedback ${incomeState.kind}`} role={incomeState.kind==='error'?'alert':'status'} aria-live="polite">{incomeState.message}{incomeState.kind==='error'&&<a href="#salary-input">返回修改收入 ↑</a>}</div>
+    <div id="salary-message" className={`income-feedback ${incomeState.kind}`} role={incomeState.kind==='error'?'alert':'status'} aria-live="polite">{incomeState.message}{incomeState.kind==='error'&&<a href="#income-form">返回核对上方资料 ↑</a>}</div>
     <div className="income-results">
-     <div><span>预计全年到手</span><strong>{unavailableIncome?incomeState.label:`¥ ${money(salary.net,2)}`}</strong></div>
-     <div><span>平均每月到手</span><strong>{unavailableIncome?incomeState.label:`¥ ${money(salary.monthlyNet,2)}`}</strong></div>
-     <div><span>全年个人五险一金</span><strong>{deductionReady?`¥ ${money(salary.contributions,2)}`:incomeState.label}</strong></div>
-     <div><span>全年工资个税情景</span><strong>{unavailableIncome?incomeState.label:`¥ ${money(salary.tax,2)}`}</strong></div>
+     <div><span>2026 年预计到手</span><strong>{unavailableIncome?incomeState.label:`¥ ${money(salary.net,2)}`}</strong></div>
+     <div><span>有薪月平均到手</span><strong>{unavailableIncome?incomeState.label:`¥ ${money(salary.monthlyNet,2)}`}</strong></div>
+     <div><span>本年个人五险一金</span><strong>{unavailableIncome?incomeState.label:`¥ ${money(salary.contributions,2)}`}</strong></div>
+     <div><span>本年累计预扣个税</span><strong>{unavailableIncome?incomeState.label:`¥ ${money(salary.tax,2)}`}</strong></div>
     </div>
-    <p className="income-assumption">月薪×12或直接填写的年薪均按全年收入测算；额外奖金请计入年薪（合并计税情景）。按全年居民工资收入、12个月相同缴费与60,000元基本减除费用估算；假定填报社保、公积金均符合税前扣除规定。年中入职、调基、其他收入和奖金单独计税需另算；平均每月到手不等于每个月实际工资。</p>
+    <p className="income-assumption">以上按实际入职月份至测算截止月份汇总；“有薪月平均到手”除以工资月份数。每月扣款和预扣个税见下表，汇算清缴退补税另计。</p>
     <div className="income-links"><a href="/profile" className="text-link">填写实际账户余额及缴费年限 <ArrowRight size={15}/></a><a href="/policies" className="text-link">查看个税与扣除政策 <ArrowUpRight size={15}/></a></div>
    </section>
-   {deductionReady&&<><section className="hero"><div className="hero-main"><div className="hero-label"><span className="live-dot"/> 每月个人五险一金缴费</div><div className="hero-amount"><span>¥</span>{money(monthCost)}<small>/ 月</small></div><p>每一笔缴费，都在为未来积累保障。</p><a href="/profile" className="hero-link">查看与修改缴费明细 <ArrowUpRight size={16}/></a></div><div className="hero-side"><div><span>个人年度缴费情景</span><strong>¥ {money(monthCost*12)}</strong><small>按当前月缴额 × 12，未含个税</small></div><div><span>单位月缴费估算{!c.employerComplete?' · 已知部分':''}</span><strong>{local?`¥ ${money(c.employer+c.personalFund)}`:'待核实'}</strong><small>含等额公积金；不从个人工资扣除</small></div></div><div className="hero-orbit orbit-one"/><div className="hero-orbit orbit-two"/></section>
+   <PayrollTable result={salary}/>
+   <Sources items={payrollSources}/>
+   {deductionReady&&<><section className="hero"><div className="hero-main"><div className="hero-label"><span className="live-dot"/> 每月个人五险一金缴费</div><div className="hero-amount"><span>¥</span>{money(monthCost)}<small>/ 月</small></div><p>每一笔缴费，都在为未来积累保障。</p><a href="/profile" className="hero-link">查看与修改缴费明细 <ArrowUpRight size={16}/></a></div><div className="hero-side"><div><span>本年个人缴费测算</span><strong>{salary.status==='ready'?`¥ ${money(salary.contributions)}`:'请核对收入与月份'}</strong><small>与逐月工资表同步，未含个税</small></div><div><span>单位月缴费估算{!c.employerComplete?' · 已知部分':''}</span><strong>{local?`¥ ${money(c.employer+c.personalFund)}`:'待核实'}</strong><small>含等额公积金；不从个人工资扣除</small></div></div><div className="hero-orbit orbit-one"/><div className="hero-orbit orbit-two"/></section>
    <div className="grid three"><Stat label="养老累计缴费" value={years(y.pension)} detail={`自动推算可修改 · 退休年限门槛 ${r.minYears} 年`} icon={Wallet}/><Stat label="医保累计缴费" value={years(y.medical)} detail="独立累计 · 退休待遇需经办核定" color="green" icon={HeartPulse}/><Stat label="公积金账户余额" value={`¥ ${money(h.balance)}`} detail={p.fundBalance===null?'当前缴存额反推 · 包含单位部分':'使用你填报的账户余额'} color="blue" icon={House}/></div>
    <div className="grid split"><Card title="我的每月缴费" subtitle="个人承担部分 · 不含个税"><div className="contribution-chart"><div className="donut" style={{background:monthCost?`conic-gradient(#7462c8 0 ${p.pensionMonthly/monthCost*100}%,#69a58c ${p.pensionMonthly/monthCost*100}% ${(p.pensionMonthly+p.medicalMonthly)/monthCost*100}%,#93b5de ${(p.pensionMonthly+p.medicalMonthly)/monthCost*100}% ${(p.pensionMonthly+p.medicalMonthly+c.personalFund)/monthCost*100}%,#e5b476 0)`:'#e7e5ee'}}><div><small>每月合计</small><strong>¥ {money(monthCost)}</strong></div></div><div className="legend">{[['养老保险',p.pensionMonthly,'#7462c8'],['医疗保险',p.medicalMonthly,'#69a58c'],['公积金（含补充）',c.personalFund,'#93b5de'],['失业及其他',p.unemploymentMonthly+p.injuryMonthly+p.maternityMonthly,'#e5b476']].map(([n,v,col])=><div key={n}><span><i style={{background:String(col)}}/>{n}</span><strong>¥ {money(Number(v))}</strong></div>)}</div></div></Card><Card title="接下来，可以了解" className="next-card">{[['pension','01','退休后，每月大概有多少？','结合退休年龄与缴费年限预估'],['compare','02','离职后，保障怎么衔接？','比较失业金与灵活就业成本'],['policies','03','工资扣款，是否有据可查？','缴费比例、基数与个税政策']].map(([id,num,title,sub])=><a href={`/${id}`} className="next-row" key={id}><span className="step">{num}</span><span><b>{title}</b><small>{sub}</small></span><ArrowUpRight size={18}/></a>)}</Card></div>
    <div className="section-label"><h2>你的保障，逐项看清</h2><span>已同步本页资料 · 点击查看详情</span></div><div className="module-grid">{NAV.slice(1,7).map(n=><a href={`/${n.id}`} className={`module-card ${n.color}`} key={n.id}><span className="module-icon"><n.icon size={22}/></span><ArrowUpRight className="module-arrow" size={18}/><h3>{n.name}</h3><p>{n.sub}</p></a>)}</div>
-   <Card title="年度社保总成本" subtitle="按当前月缴额持续12个月的情景，公积金另列"><div className="grid three"><Stat label="个人社保 / 年" value={`¥ ${money(c.employee*12)}`} color="neutral"/><Stat label="单位社保 / 年" value={local?`¥ ${money(c.employer*12)}`:'待核实'} detail={c.employerComplete?'按填报比例估算':'已知部分，未含待核实单位失业费'} color="neutral"/><Stat label="双方公积金 / 年" value={`¥ ${money(c.personalFund*24)}`} detail="假定双方月缴额相同" color="neutral"/></div><div className="result-line"><span>双方年度社保成本{!c.employerComplete?'（已知部分）':''}</span><strong>{local?`¥ ${money(c.total*12)}`:'待核实'}</strong></div><Notes items={['单位缴费基数由个人养老8%、医保2%反推；工伤暂按养老基数，实际账单可能不同。单位失业保险最新延续比例未核实，可在个人信息页填写单位核定值。','工作年份只用于连续缴费假设，不代表已查询真实参保记录。断缴、转移与历史调基需手动校正。']}/></Card>
+   <Card title="标准12个月社保成本参考" subtitle="按当前月缴额持续12个月的情景，公积金另列"><div className="grid three"><Stat label="个人社保 / 年" value={`¥ ${money(c.employee*12)}`} color="neutral"/><Stat label="单位社保 / 年" value={local?`¥ ${money(c.employer*12)}`:'待核实'} detail={c.employerComplete?'按填报比例估算':'已知部分，未含待核实单位失业费'} color="neutral"/><Stat label="双方公积金 / 年" value={`¥ ${money(c.personalFund*24)}`} detail="假定双方月缴额相同" color="neutral"/></div><div className="result-line"><span>双方年度社保成本{!c.employerComplete?'（已知部分）':''}</span><strong>{local?`¥ ${money(c.total*12)}`:'待核实'}</strong></div><Notes items={['单位缴费基数由个人养老8%、医保2%反推；工伤暂按养老基数，实际账单可能不同。单位失业保险最新延续比例未核实，可在个人信息页填写单位核定值。','工作年份只用于连续缴费假设，不代表已查询真实参保记录。断缴、转移与历史调基需手动校正。']}/></Card>
    </>}
   </>}
   {section==='profile'&&<>

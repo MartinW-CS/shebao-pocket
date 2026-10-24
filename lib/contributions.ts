@@ -22,7 +22,7 @@ export function resolveContributions(raw:Profile,now=new Date()){
  }
  if(raw.linkFundParameters){
   profile.incomeBase=raw.automaticDeductions?(fundBase??0):cents(raw.fundMonthly/(raw.fundRate/100));
-  profile.continuousFundMonths=Math.max(0,automaticMonths(raw,now)-1);
+  profile.continuousFundMonths=Math.max(0,automaticMonths(raw,now)-(raw.fundFirstMonth?0:1));
  }
  return {profile,status,socialBase,fundBase,socialInput,fundInput,estimated:raw.socialBase===null||raw.fundBase===null};
 }

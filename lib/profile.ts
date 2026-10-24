@@ -1,4 +1,5 @@
 export type Profile = {
+  payrollEndMonth:number; payrollFirstSalary:number|null; payrollTrialMonths:number; payrollTrialSalary:number|null; firstJobTaxRelief:boolean; fundFirstMonth:boolean;
   incomePeriod:'monthly'|'annual'; annualSalary:number|null; annualExtraDeduction:number; automaticDeductions:boolean; socialBase:number|null; fundBase:number|null; supplementRate:number;
   birthContinuous:number; birthPaid:boolean; medicalActive:boolean; taxIncome:number; taxMonths:number; taxSocial:number; taxExtra:number; taxPaid:number;
   city: string; age: number; birthMonth: string; retirementCategory: 'male'|'female55'|'female50';
@@ -20,6 +21,7 @@ export type Profile = {
 };
 
 export const DEFAULT_PROFILE: Profile = {
+  payrollEndMonth:12, payrollFirstSalary:null, payrollTrialMonths:0, payrollTrialSalary:null, firstJobTaxRelief:false, fundFirstMonth:false,
   incomePeriod:'monthly', annualSalary:null, annualExtraDeduction:0, automaticDeductions:true, socialBase:null, fundBase:null, supplementRate:0,
   birthContinuous:0,birthPaid:false,medicalActive:false,taxIncome:10000,taxMonths:1,taxSocial:1750,taxExtra:0,taxPaid:0,
   city:'上海', age:22, birthMonth:'2004-07', retirementCategory:'male', workYear:2026,workMonth:7,
@@ -44,7 +46,7 @@ export function automaticMonths(p:Profile,now=new Date()) {
 }
 export function contributionYears(p:Profile,now=new Date()) {
   const months=automaticMonths(p,now);
-  return {pension:p.pensionYears??months/12,medical:p.medicalYears??months/12,fund:p.fundYears??Math.max(0,months-1)/12};
+  return {pension:p.pensionYears??months/12,medical:p.medicalYears??months/12,fund:p.fundYears??Math.max(0,months-(p.fundFirstMonth?0:1))/12};
 }
 export function normalizeProfile(raw:unknown):Profile {
   if(!raw||typeof raw!=='object') return {...DEFAULT_PROFILE};
@@ -63,6 +65,8 @@ export function normalizeProfile(raw:unknown):Profile {
   result.age=Math.min(100,Math.max(16,result.age));
   result.workMonth=Math.min(12,Math.max(1,Math.round(result.workMonth)));
   result.workYear=Math.min(2100,Math.max(1950,Math.round(result.workYear)));
+  result.payrollEndMonth=Math.min(12,Math.max(1,Math.round(result.payrollEndMonth)));
+  result.payrollTrialMonths=Math.min(6,Math.max(0,Math.round(result.payrollTrialMonths)));
   result.fundRate=[5,6,7].includes(result.fundRate)?result.fundRate:7;
   result.supplementRate=Math.min(5,Math.max(0,Math.round(result.supplementRate)));
   for(const k of ['pensionYears','medicalYears','fundYears'] as const) if(result[k]!==null)result[k]=Math.min(80,result[k]!);
