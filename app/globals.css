@@ -13,7 +13,7 @@
 
 .base-summary{display:flex;gap:24px;flex-wrap:wrap;padding:16px;background:#f5f2fb;border-radius:12px;margin:16px 0}.base-summary span{font-size:13px}.base-summary b{display:block;margin-top:5px;font-size:17px}.deduction-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}.deduction-item{background:#f7f8fa;border:1px solid #eeedf3;border-radius:14px;padding:15px}.deduction-item span{display:flex;justify-content:space-between;gap:8px;font-size:12px}.deduction-item small{color:#817493}.deduction-item strong{display:block;font-size:21px;margin-top:12px}.field input[readonly]{background:#f4f2f8;color:#6c637f;cursor:default}.manual-correction{margin-top:18px}@media(max-width:900px){.deduction-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
-.salary-switch{display:inline-flex;gap:4px;background:#efecf6;border-radius:10px;padding:4px;align-self:flex-start}.salary-switch button{border:0;background:transparent;color:#766c89;border-radius:7px;padding:6px 16px;font:inherit;font-size:13px;cursor:pointer}.salary-switch button[aria-pressed=true]{background:#fff;color:#5d4799;box-shadow:0 1px 4px #30204518;font-weight:600}.salary-switch button:focus-visible{outline:2px solid #7462c8;outline-offset:2px}.income-entry{gap:8px}.income-fields{align-items:end}.field input[aria-invalid=true]{border-color:#c65c47;background:#fff7f4}.income-feedback.error{color:#943f2e;background:#fff2eb;border:1px solid #f0c4b4;border-radius:12px;padding:16px;line-height:1.8}.income-feedback a{display:block;font-weight:600;margin-top:8px;color:inherit}.income-results strong{overflow-wrap:anywhere}
+.salary-switch{display:inline-flex;gap:4px;background:#efecf6;border-radius:10px;padding:4px;align-self:flex-start}.salary-switch button{border:0;background:transparent;color:#766c89;border-radius:7px;padding:6px 16px;font:inherit;font-size:13px;cursor:pointer}.salary-switch button[aria-pressed=true]{background:#fff;color:#5d4799;box-shadow:0 1px 4px #30204518;font-weight:600}.salary-switch button:focus-visible{outline:2px solid #7462c8;outline-offset:2px}.income-entry{gap:8px}.income-fields{align-items:stretch}.field input[aria-invalid=true]{border-color:#c65c47;background:#fff7f4}.income-feedback.error{color:#943f2e;background:#fff2eb;border:1px solid #f0c4b4;border-radius:12px;padding:16px;line-height:1.8}.income-feedback a{display:block;font-weight:600;margin-top:8px;color:inherit}.income-results strong{overflow-wrap:anywhere}
 
 .field .salary-inline-error,.salary-inline-error a{color:#943f2e}.salary-inline-error a{text-decoration:underline}
 
@@ -48,3 +48,102 @@
 .payroll-table td,.payroll-table th{padding:12px 8px;font-size:12px}
 .payroll-table th:first-child{min-width:125px;max-width:155px}
 .payroll-table thead th{font-size:11px}
+
+/* Shared label, control and help rows keep every form column aligned. */
+.salary-toolbar{display:flex;align-items:center;gap:16px;margin:0 0 22px;color:#655873;font-size:14px}
+.form-grid{column-gap:20px;row-gap:10px;align-items:start}
+.form-grid>.field{display:grid;grid-template-rows:subgrid;grid-row:span 3;row-gap:9px;align-self:stretch;padding-bottom:12px}
+.form-grid>.field>span:first-child,.form-grid>.field>label{grid-row:1;align-self:end;line-height:1.6}
+.form-grid>.field>.input-wrap,.form-grid>.field>input,.form-grid>.field>select{grid-row:2;align-self:start}
+.form-grid>.field>small,.form-grid>.field>.income-help{grid-row:3;align-self:start}
+.income-help{display:flex;flex-direction:column;gap:7px;min-width:0}
+@media(min-width:761px){
+ body{font-size:16px}
+ .nav-item{font-size:15px;min-height:46px}.nav-label{font-size:12px}
+ .page-heading p,.card-heading>p,.muted,.notes,.check-row,.formula,.mini-table>div,.feature-row p,.comparison>p,.search-heading p,.search-status,.sources,.sources a,.income-heading p,.income-feedback,.detail-heading p,.payroll-heading p{font-size:15px;line-height:1.8}
+ .field,.income-fields .field>span,.field>label{font-size:15px;color:#574b64;font-weight:500}
+ .field small,.income-fields .field small{font-size:14px;line-height:1.7;color:#786b86;font-weight:400}
+ input:not([type=checkbox]),select,.income-fields input{height:52px;font-size:16px;line-height:1.4}
+ .input-wrap>span{font-size:13px;color:#84758f}.input-wrap>input{padding-right:52px}
+ .salary-toolbar,.salary-switch button{font-size:15px}.salary-switch button{padding:8px 23px}
+ .income-heading h2,.card-heading h2{font-size:22px}.income-subheading h3{font-size:18px}
+ .income-subheading>span,.income-kicker,.income-more summary,.income-assumption,.stat-detail,.module-card p,.legend>div,.privacy-line,.sources small,.callout small,.shared-profile>p,.shared-profile-heading,.shared-profile-heading a,.shared-metrics dt,.detail-status,.detail-back,.payroll-summary span,.payroll-filter span{font-size:14px;line-height:1.75}
+ .income-subheading>span,.income-assumption{color:#7e6f8c}
+ .income-results span,.deduction-item span,.base-summary span,.stat-head,.module-card h3{font-size:15px}
+ .income-results strong{font-size:26px}.deduction-item strong{font-size:24px}
+ .shared-metrics dd{font-size:20px}.detail-section-label h2{font-size:18px}
+ .detail-section-label small,.detail-category,.badge,.save-status{font-size:12px}
+ table{font-size:14px}.payroll-table td,.payroll-table th{font-size:14px;padding:14px 10px}.payroll-table thead th{font-size:13px}.payroll-table th small{font-size:12px}
+ .payroll-scroll .payroll-table{min-width:1060px}
+}
+
+/* Detail modules share one desktop rhythm while retaining their theme colors. */
+@media(min-width:761px){
+ :is(.detail-view,.utility-view) .card{padding:28px}
+ :is(.detail-view,.utility-view) .card-heading{margin-bottom:24px}
+ :is(.detail-view,.utility-view) .card-heading h2{font-size:22px;line-height:1.5}
+ :is(.detail-view,.utility-view) .form-grid{column-gap:22px;row-gap:12px}
+ :is(.detail-view,.utility-view) .field>span:first-child{line-height:1.65}
+ :is(.detail-view,.utility-view) .field input,:is(.detail-view,.utility-view) .field select{height:52px;border-radius:9px}
+ :is(.detail-view,.utility-view) .field input:focus,:is(.detail-view,.utility-view) .field select:focus{border-color:var(--detail-ink)}
+ :is(.detail-view,.utility-view) .check-row{gap:12px;font-size:15px;line-height:1.8;margin:20px 0}
+ :is(.detail-view,.utility-view) .check-row input{width:18px;height:18px;margin-top:5px}
+ :is(.detail-view,.utility-view) .result-line{font-size:16px;line-height:1.75;color:#64576f;flex-wrap:wrap;row-gap:8px}
+ :is(.detail-view,.utility-view) .result-line strong{font-size:28px;color:var(--detail-deep);font-variant-numeric:tabular-nums}
+ :is(.detail-view,.utility-view) .callout{font-size:16px;line-height:1.8;padding:20px;border-radius:12px}
+ :is(.detail-view,.utility-view) .callout small,:is(.detail-view,.utility-view) .large-result small{font-size:14px;line-height:1.75}
+ :is(.detail-view,.utility-view) .large-result{font-size:34px;line-height:1.4;color:var(--detail-deep);font-variant-numeric:tabular-nums}
+ :is(.detail-view,.utility-view) .mini-table>div{font-size:15px;line-height:1.8;align-items:flex-start;gap:20px;padding:16px 0}
+ :is(.detail-view,.utility-view) .mini-table>div>span{flex:1;min-width:0}
+ :is(.detail-view,.utility-view) .mini-table strong{max-width:60%;overflow-wrap:anywhere;color:var(--detail-deep)}
+ :is(.detail-view,.utility-view) .button,:is(.detail-view,.utility-view) .text-link{font-size:15px;line-height:1.6}
+ :is(.detail-view,.utility-view) .button{min-height:46px;white-space:normal;text-align:center}
+ :is(.detail-view,.utility-view) .feature-row h3,:is(.detail-view,.utility-view) .risk-heading h2{font-size:18px;line-height:1.6}
+ :is(.detail-view,.utility-view) .risk-card p{font-size:15px;line-height:1.9;color:#74677f}
+ :is(.detail-view,.utility-view) .risk-heading{flex-wrap:wrap;gap:10px}
+ :is(.detail-view,.utility-view) .grade-selector{gap:10px;flex-wrap:wrap}
+ :is(.detail-view,.utility-view) .grade-selector button{font-size:16px;min-width:52px;min-height:46px}
+ :is(.detail-view,.utility-view) .sources summary{font-size:15px;line-height:1.8}
+ :is(.detail-view,.utility-view) .sources summary>span{font-size:13px;color:#786b86}
+ :is(.detail-view,.utility-view) .sources a{font-size:15px;line-height:1.8}
+ :is(.detail-view,.utility-view) .sources small{font-size:14px;line-height:1.8}
+ :is(.detail-view,.utility-view) table{font-size:15px;line-height:1.8}
+ :is(.detail-view,.utility-view) th,:is(.detail-view,.utility-view) td{padding:16px 14px}
+ :is(.detail-view,.utility-view) .stat{padding:24px;display:flex;flex-direction:column}
+ :is(.detail-view,.utility-view) .stat-head{font-size:15px;line-height:1.7;align-items:flex-start}
+ :is(.detail-view,.utility-view) .stat-value{font-size:29px;line-height:1.4;margin:15px 0 12px}
+ :is(.detail-view,.utility-view) .stat-detail{margin-top:auto;font-size:14px;line-height:1.8}
+ :is(.detail-view,.utility-view) .shared-metrics dt{min-height:25px}
+ :is(.detail-view,.utility-view) .detail-status{flex-wrap:wrap;line-height:1.8}
+}
+@media(min-width:1001px){:is(.detail-view,.utility-view) .grid.split{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Profile and policy tools use the same readable form and card system. */
+.utility-view{--detail-ink:#65518e;--detail-soft:#f0ebf8;--detail-deep:#4b3869;--detail-line:#e1d9ec}
+@media(min-width:761px){
+ .utility-view .card{border-radius:16px}
+ .utility-view .search-heading h2,.utility-view .section-label h2{font-size:22px;line-height:1.5}
+ .utility-view .section-label{align-items:baseline;flex-wrap:wrap;gap:12px}
+ .utility-view .section-label>span{font-size:14px;color:#786b86}
+ .utility-view .search-controls{gap:16px;align-items:center}
+ .utility-view .search-controls .button{min-height:52px}
+ .utility-view .search-controls select{min-width:220px}
+ .utility-view .search-results strong{font-size:16px;line-height:1.7;color:#65518e}
+ .utility-view .search-results p{font-size:15px;line-height:1.8;color:#74677f}
+ .utility-view .search-results small{font-size:14px;color:#786b86}
+ .utility-view .formula.large{font-size:16px;line-height:1.9;padding:18px;color:#655873}
+ .utility-view .table-scroll{border:1px solid #e9e4ef;border-radius:12px}
+ .utility-view .table-scroll table{font-size:15px;line-height:1.8}
+ .utility-view th,.utility-view td{padding:16px 18px;vertical-align:top;overflow-wrap:anywhere}
+ .utility-view thead th{font-size:15px;font-weight:600;color:#574b64;background:#f3f0f8}
+ .utility-view tbody th{font-size:15px;font-weight:500;color:#574b64}
+ .utility-view tbody tr:nth-child(even){background:#faf9fc}
+ .utility-view tbody tr:last-child>*{border-bottom:0}
+ .utility-view table a{color:#65518e;text-underline-offset:4px}
+ .utility-view .policy-table{min-width:920px;table-layout:fixed}
+ .utility-view .policy-table th:nth-child(1){width:12%}
+ .utility-view .policy-table th:nth-child(2),.utility-view .policy-table th:nth-child(3){width:14%}
+ .utility-view .policy-table th:nth-child(4){width:28%}
+ .utility-view .policy-table th:nth-child(5){width:32%}
+ .utility-view .bottom-actions{gap:20px;flex-wrap:wrap;align-items:center}
+}

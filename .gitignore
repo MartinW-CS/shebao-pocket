@@ -43,3 +43,8 @@ yarn-error.log*
 
 # OS metadata
 .DS_Store
+
+# Exported personal profiles
+/我的社保档案*.json
+/全站复查*档案.json
+/检查前社保档案备份.json
